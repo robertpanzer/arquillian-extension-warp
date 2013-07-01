@@ -38,6 +38,7 @@ import org.jboss.arquillian.warp.impl.client.execution.DefaultHttpRequestEnrichm
 import org.jboss.arquillian.warp.impl.client.execution.DefaultResponseDeenrichmentService.RetrievePayloadFromServer;
 import org.jboss.arquillian.warp.impl.server.commandBus.CommandBusOnServer;
 import org.jboss.arquillian.warp.impl.server.delegation.RequestDelegationService;
+import org.jboss.arquillian.warp.impl.server.execution.WarpFilter;
 import org.jboss.arquillian.warp.impl.server.lifecycle.LifecycleManagerStoreImpl;
 import org.jboss.arquillian.warp.servlet.AfterServlet;
 import org.jboss.arquillian.warp.servlet.BeforeServlet;
@@ -141,6 +142,8 @@ public class DeploymentEnricher implements ApplicationArchiveProcessor, Auxiliar
                 archive.addPackage(packageName);
             }
 
+            archive.delete("org/jboss/arquillian/warp/impl/server/execution/WarpFilter.class");
+
             archive.addClasses(REQUIRED_WARP_INNER_CLASSES);
 
             // register remote extension
@@ -180,6 +183,13 @@ public class DeploymentEnricher implements ApplicationArchiveProcessor, Auxiliar
             for (ArchivePath archivePath : classPathsToRemove) {
                 applicationArchive.delete(archivePath);
             }
+
+            // Add the WebFilter to the protocolArchive and not to the auxiliary jar that may be added as
+            // a library to the ear
+            WebArchive protocolWar = (WebArchive)protocolArchive;
+            protocolWar.addAsLibrary(
+                    ShrinkWrap.create(JavaArchive.class, "arquillian-warp-filter.jar")
+                        .addClass(WarpFilter.class));
 
         }
     }
